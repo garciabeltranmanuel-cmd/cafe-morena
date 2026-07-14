@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Café Morena — Comandas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --charcoal:#1c1a17;
+    --charcoal-2:#26221d;
+    --chili:#e2532b;
+    --chili-dark:#c23f1c;
+    --marigold:#f2a900;
+    --avocado:#3c6b3a;
+    --avocado-dark:#2c4f2a;
+    --paper:#fbf3e3;
+    --paper-line:#e7dcc2;
+    --ink:#241f19;
+    --muted:#8a7f6d;
+    --white:#fff;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--charcoal);
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:78px;
+  }
+  ::selection{background:var(--marigold);color:var(--ink);}
+
+  header.top{
+    background:
+      radial-gradient(circle at 15% 20%, rgba(226,83,43,0.15), transparent 40%),
+      var(--charcoal);
+    padding:22px 20px 20px;
+    position:relative;
+    border-bottom:4px solid var(--chili);
+  }
+  header.top .eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--marigold);
+    margin:0 0 4px;
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .logo-emoji{
+    font-size:clamp(28px,7.5vw,40px);
+    line-height:1;
+  }
+  .logo-img{
+    display:none;
+    height:40px;
+    width:40px;
+    object-fit:cover;
+    border-radius:9px;
+    border:1px solid rgba(255,255,255,0.15);
+  }
+  header.top h1{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:clamp(28px,7.5vw,40px);
+    letter-spacing:.02em;
+    color:var(--paper);
+    margin:0;
+    line-height:.95;
+  }
+  header.top p.tag{
+    color:#b8ac97;
+    font-size:13px;
+    margin:8px 0 0;
+  }
+  .gear-btn{
+    position:absolute;
+    top:20px; right:18px;
+    width:38px;height:38px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    color:var(--paper);
+    font-size:17px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .welcome-view{
+    min-height:calc(100vh - 130px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:30px 20px;
+  }
+  .welcome-card{
+    background:var(--paper);
+    border-radius:18px;
+    padding:30px 26px 26px;
+    max-width:380px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+  }
+  .welcome-card .w-eyebrow{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--chili-dark);
+    margin:0 0 6px;
+  }
+  .welcome-card h2{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:26px;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .welcome-card p.w-sub{
+    font-size:13px;
+    color:var(--muted);
+    margin:0 0 20px;
+  }
+  #qrContainer{
+    display:flex;
+    justify-content:center;
+    padding:14px;
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:14px;
+    margin-bottom:18px;
+  }
+  .welcome-card .w-hint{
+    font-size:12px;
+    color:var(--muted);
+    margin:0 0 20px;
+  }
+  .enter-btn{
+    display:block;
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:none;
+    background:var(--chili);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+  }
+  .bottom-nav{display:none;}
+  .bottom-nav.show{display:flex;}
+
+  .lock-screen{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:60;
+    background:var(--charcoal);
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .lock-screen.show{display:flex;}
+  .lock-card{
+    background:var(--paper);
+    border-radius:18px;
+    padding:34px 26px 28px;
+    max-width:380px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+  }
+  .lock-card h2{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:26px;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  .hist-pin-card{
+    background:var(--paper);
+    border-radius:16px;
+    padding:26px 22px;
+    max-width:380px;
+    margin:30px auto 0;
+    text-align:center;
+  }
+
+  nav.cats{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:14px 16px;
+    background:var(--charcoal-2);
+    -webkit-overflow-scrolling:touch;
+  }
+  nav.cats::-webkit-scrollbar{display:none;}
+  nav.cats button{
+    flex:0 0 auto;
+    padding:9px 16px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.12);
+    background:transparent;
+    color:#cfc3ac;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  nav.cats button.active{
+    background:var(--chili);
+    border-color:var(--chili);
+    color:var(--white);
+  }
+
+  main{
+    padding:18px 16px 24px;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .cat-title{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    color:var(--paper);
+    font-size:20px;
+    letter-spacing:.02em;
+    margin:22px 0 12px;
+  }
+  .cat-title:first-child{margin-top:0;}
+  .item-card{
+    background:var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:14px;
+    padding:14px 14px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .item-thumb{
+    width:52px;height:52px;
+    border-radius:10px;
+    object-fit:cover;
+    flex:0 0 auto;
+    background:var(--paper-line);
+  }
+  .item-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+  }
+  .item-info h3{
+    margin:0 0 4px;
+    font-size:15.5px;
+    font-weight:700;
+  }
+  .item-info .price{
+    font-family:'Space Mono',monospace;
+    color:var(--chili-dark);
+    font-weight:700;
+    font-size:14px;
+  }
+  .stepper{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:0 0 auto;
+  }
+  .stepper button{
+    width:32px;height:32px;
+    border-radius:8px;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:17px;
+    font-weight:700;
+    cursor:pointer;
+    line-height:1;
+  }
+  .stepper button.plus{background:var(--avocado);}
+  .stepper span.qty{
+    min-width:18px;
+    text-align:center;
+    font-weight:800;
+    font-family:'Space Mono',monospace;
+  }
+  .empty-cat{
+    color:#a6957a;
+    font-size:13.5px;
+    font-style:italic;
+    padding:4px 0 4px;
+  }
+
+  .order-card{
+    background:var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:14px;
+    padding:18px;
+    font-family:'Space Mono',monospace;
+  }
+  .type-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+    font-family:'Inter',sans-serif;
+  }
+  .type-toggle button{
+    flex:1;
+    padding:10px 6px;
+    border-radius:9px;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .type-toggle button.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .order-card input, .order-card textarea{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    padding:10px 11px;
+    border-radius:8px;
+    border:1px solid var(--paper-line);
+    font-size:14px;
+    background:#fff;
+    margin-bottom:12px;
+  }
+  .order-card textarea{resize:none;height:48px;}
+  .order-total-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:2px 0 10px;
+    border-bottom:1px dashed var(--muted);
+    margin-bottom:8px;
+  }
+  .order-total-row .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .order-total-row .val{font-size:20px;font-weight:700;color:var(--chili-dark);}
+  .ticket-line{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    padding:6px 0;
+    border-bottom:1px dotted var(--paper-line);
+  }
+  .ticket-line .rm{
+    color:var(--chili-dark);
+    cursor:pointer;
+    font-weight:700;
+    margin-left:8px;
+  }
+  .empty-ticket{
+    color:var(--muted);
+    font-size:13px;
+    text-align:center;
+    padding:18px 0;
+  }
+  .send-all-btn{
+    display:block;
+    width:100%;
+    margin-top:0;
+    padding:13px;
+    border-radius:10px;
+    border:none;
+    background:var(--chili);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:14.5px;
+    cursor:pointer;
+  }
+  .send-all-btn:disabled{
+    background:var(--paper-line);
+    color:var(--muted);
+    cursor:not-allowed;
+  }
+  .finalize-btn{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    padding:11px;
+    border-radius:9px;
+    border:none;
+    background:var(--avocado-dark);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .finalize-btn.confirmed{
+    background:var(--avocado);
+    cursor:default;
+  }
+  .clear-btn{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+
+  .history-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .history-head h2{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    color:var(--paper);
+    font-size:20px;
+    margin:0;
+  }
+  .history-head button{
+    background:none;
+    border:none;
+    color:#d68d6b;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .hist-card{
+    background:var(--paper);
+    border:1px solid var(--paper-line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    cursor:pointer;
+  }
+  .hist-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .hist-top .ref{font-weight:700;font-size:14.5px;}
+  .hist-top .total{font-family:'Space Mono',monospace;font-weight:700;color:var(--chili-dark);}
+  .hist-meta{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+    font-family:'Space Mono',monospace;
+  }
+  .hist-details{
+    display:none;
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px dashed var(--paper-line);
+    font-family:'Space Mono',monospace;
+    font-size:12.5px;
+  }
+  .hist-card.open .hist-details{display:block;}
+  .hist-details div{padding:2px 0;}
+  .empty-hist{
+    color:#a6957a;
+    font-size:13.5px;
+    font-style:italic;
+    text-align:center;
+    padding:30px 0;
+  }
+
+  .bottom-nav{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--paper);
+    border-top:2px solid var(--ink);
+    z-index:50;
+  }
+  .bottom-nav button{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    padding:10px 4px 8px;
+    background:none;
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:11.5px;
+    color:var(--muted);
+    cursor:pointer;
+    position:relative;
+  }
+  .bottom-nav button.active{color:var(--chili-dark);}
+  .bottom-nav .icon{font-size:19px;}
+  .badge{
+    position:absolute;
+    top:2px; right:22%;
+    background:var(--chili);
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+    min-width:16px;
+    height:16px;
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    padding:0 4px;
+  }
+
+  .modal-bg{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.55);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:80;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:var(--paper);
+    width:100%;
+    max-width:640px;
+    border-radius:18px 18px 0 0;
+    padding:20px;
+    max-height:85vh;
+    overflow-y:auto;
+  }
+  .modal h2{
+    font-family:'Anton',sans-serif;
+    font-weight:400;
+    font-size:22px;
+    margin:0 0 14px;
+  }
+  .modal label{
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--muted);
+    margin:12px 0 4px;
+  }
+  .modal input, .modal select{
+    width:100%;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--paper-line);
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+  }
+  .modal .row3{display:grid;grid-template-columns:1.4fr 0.8fr 1fr;gap:8px;}
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:10px 16px;
+    border-radius:9px;
+    border:none;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--chili);color:#fff;margin-top:14px;}
+  .btn-outline{background:transparent;border:1px solid var(--ink);color:var(--ink);}
+  .close-x{
+    float:right;
+    background:none;border:none;
+    font-size:20px;cursor:pointer;color:var(--ink);
+  }
+  .admin-tabs{display:flex;gap:6px;margin-bottom:6px;}
+  .admin-tabs button{
+    flex:1;
+    padding:8px;
+    border-radius:8px;
+    border:1px solid var(--paper-line);
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    cursor:pointer;
+  }
+  .admin-tabs button.active{background:var(--ink);color:var(--paper);}
+  .menu-item-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--paper-line);
+    font-size:13.5px;
+  }
+  .menu-item-row .del{
+    color:var(--chili-dark);
+    cursor:pointer;
+    font-weight:800;
+  }
+  .row-thumb{
+    width:34px;height:34px;
+    border-radius:8px;
+    object-fit:cover;
+    flex:0 0 auto;
+    background:var(--paper-line);
+    cursor:pointer;
+  }
+  .row-thumb-empty{
+    width:34px;height:34px;
+    border-radius:8px;
+    flex:0 0 auto;
+    background:var(--paper-line);
+    border:1px dashed var(--muted);
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .new-item-photo-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:8px;
+  }
+  .new-item-photo-row img{
+    width:44px;height:44px;
+    border-radius:8px;
+    object-fit:cover;
+    display:none;
+  }
+  .new-item-photo-row .photo-btn{
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink);
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:7px;
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .pane{display:none;}
+  .pane.active{display:block;}
+  .logo-preview-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--charcoal-2);
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:10px;
+  }
+  .logo-preview-row .logo-emoji{font-size:40px;}
+  .logo-preview-img{
+    display:none;
+    height:64px;
+    width:64px;
+    object-fit:cover;
+    border-radius:10px;
+  }
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .toast{
+    position:fixed;
+    top:16px;left:50%;
+    transform:translateX(-50%);
+    background:var(--avocado-dark);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+    z-index:120;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header class="top" id="headerTop">
+  <p class="eyebrow">Café Morena</p>
+  <div class="brand-row">
+    <span id="logoEmoji" class="logo-emoji">☕</span>
+    <img id="logoImg" class="logo-img" alt="Logo">
+    <h1> Café Morena </h1>
+  </div>
+  <p class="tag">Arma el pedido y mándalo directo a WhatsApp</p>
+   <p class="tag"> Hecho: Delly Technologies </p>
+  <button class="gear-btn" onclick="openAdmin()" title="Configuración" aria-label="Configuración">⚙</button>
+</header>
+
+<div class="view active" id="viewWelcome">
+  <div class="welcome-view">
+    <div class="welcome-card">
+      <p class="w-eyebrow">Café Morena</p>
+      <h2>☕ Bienvenido</h2>
+      <p class="w-sub">Escanea el código para abrir la comanda en tu celular</p>
+      <div id="qrContainer"></div>
+      <p class="w-hint">¿No tienes cámara o código a la mano?</p>
+      <button class="enter-btn" onclick="enterApp()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="viewMenu">
+  <nav class="cats" id="catNav"></nav>
+  <main id="menuMain"></main>
+</div>
+
+<div class="view" id="viewOrder">
+  <main>
+    <div class="order-card">
+      <div class="type-toggle">
+        <button id="tipoMesaBtn" onclick="setTipo('mesa')">🍽️ Mesa</button>
+        <button id="tipoLlevarBtn" onclick="setTipo('llevar')">🥡 Para llevar</button>
+      </div>
+      <input type="text" id="refInput" placeholder="Número de mesa , mesero">
+
+      <div class="order-total-row">
+        <span class="lbl">Total</span>
+        <span class="val" id="orderTotal">$0</span>
+      </div>
+      <div id="ticketLines"></div>
+      <textarea id="notesInput" placeholder="Notas (ej. sin cebolla, extra salsa...)"></textarea>
+
+      <button class="finalize-btn" id="finalizeBtn" onclick="finalizeOrder()">✅ Finalizar y guardar en historial</button>
+      <p class="hint" id="confirmHint" style="text-align:center;margin:8px 0 0;">Finaliza el pedido para poder enviarlo por WhatsApp.</p>
+      <button class="send-all-btn" id="sendBtn" onclick="sendOrder()" disabled>📤 Enviar pedido</button>
+      <button class="clear-btn" onclick="clearOrder()">Vaciar pedido</button>
+    </div>
+  </main>
+</div>
+
+<div class="view" id="viewHistory">
+  <main>
+    <div id="historyPinGate" class="hist-pin-card">
+      <p class="w-eyebrow">Solo dueño / administrador</p>
+      <h2 style="font-family:'Anton',sans-serif;font-weight:400;font-size:22px;margin:0 0 10px;">🔒 Historial protegido</h2>
+      <label style="display:block;font-size:12px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">PIN de administrador o contraseña del dueño</label>
+      <input type="password" id="histPinInput" placeholder="••••" style="width:100%;padding:10px 11px;border-radius:8px;border:1px solid var(--paper-line);font-size:14px;margin-bottom:10px;">
+      <button class="enter-btn" onclick="checkHistoryPin()">Ver historial</button>
+    </div>
+    <div id="historyContent" style="display:none;">
+      <div class="history-head">
+        <h2>Historial</h2>
+        <button onclick="clearHistory()">Borrar todo</button>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button id="navMenuBtn" class="active" onclick="switchView('menu')">
+    <span class="icon">🌮</span>Menú
+  </button>
+  <button id="navOrderBtn" onclick="switchView('order')">
+    <span class="icon">🧾</span>Pedido
+    <span class="badge" id="orderBadge" style="display:none;">0</span>
+  </button>
+  <button id="navHistBtn" onclick="switchView('history')">
+    <span class="icon">📖</span>Historial
+  </button>
+</nav>
+
+<div class="modal-bg" id="adminBg">
+  <div class="modal">
+    <button class="close-x" onclick="closeAdmin()">✕</button>
+    <h2>Configuración</h2>
+
+    <div id="pinGate">
+      <label>PIN de administrador</label>
+      <input type="password" id="pinInput" placeholder="••••">
+      <button class="btn btn-primary" onclick="checkPin()">Entrar</button>
+      <p class="hint">PIN por defecto: **** (cámbialo en la pestaña Números una vez dentro). Este PIN es el mismo para todos los celulares.</p>
+      <!-- Este linea se cambia la contraseña por otra la activamos cuando olvidamos contraseña -->
+     <!-- <p class="hint"><span style="text-decoration:underline;cursor:pointer;" onclick="resetPinPrompt()">¿Olvidaste tu PIN? Restablecer a 1234 en este celular</span></p> -->
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+      <div class="admin-tabs">
+        <button class="active" id="tabMenuBtn" onclick="showPane('menu')">Menú</button>
+        <button id="tabNumBtn" onclick="showPane('numeros')">Números</button>
+        <button id="tabApBtn" onclick="showPane('apariencia')">Apariencia</button>
+        <button id="tabSysBtn" onclick="showPane('sistema')">Sistema</button>
+      </div>
+
+      <div class="pane active" id="paneMenu">
+        <p class="hint" style="margin-top:0;">Los cambios aquí se ven en todos los celulares al instante — no solo en el tuyo. Las fotos se comprimen automáticamente; evita subir demasiadas fotos muy detalladas para no saturar el espacio compartido.</p>
+        <label>Nuevo platillo</label>
+        <div class="row3">
+          <input type="text" id="newItemName" placeholder="Nombre">
+          <input type="number" id="newItemPrice" placeholder="Precio">
+          <select id="newItemCat"></select>
+        </div>
+        <div class="row3" style="margin-top:8px;">
+          <input type="text" id="newCatName" placeholder="...o nueva categoría">
+          <div></div>
+          <button class="btn btn-outline" onclick="addItem()">Agregar</button>
+        </div>
+        <div class="new-item-photo-row">
+          <img id="newItemPhotoPreview" alt="Vista previa">
+          <button type="button" class="photo-btn" onclick="openImagePicker(null)">📷 Foto (opcional)</button>
+          <button type="button" class="photo-btn" id="newItemPhotoRemoveBtn" style="display:none;" onclick="removeNewItemPhoto()">Quitar</button>
+        </div>
+        <input type="file" id="itemPhotoFile" accept="image/*" style="display:none;" onchange="handleItemImage(event)">
+        <div id="itemsList" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="pane" id="paneNumeros">
+        <label>WhatsApp — Cocina (con código de país, ej. 5214441234567)</label>
+        <input type="text" id="numCocina">
+        <label>WhatsApp — Dueño</label>
+        <input type="text" id="numDueno">
+        <label>Cambiar PIN de administrador (acceso completo)</label>
+        <input type="text" id="newPin" placeholder="Nuevo PIN">
+        <label>Contraseña del dueño (solo ve Historial)</label>
+        <input type="text" id="duenoPassInput" placeholder="Contraseña del dueño">
+        <p class="hint">El botón "Enviar pedido" abre un chat de WhatsApp por cada número que dejes lleno aquí. Estos números se sincronizan al instante en todos los celulares — no hace falta configurarlos en cada dispositivo. La contraseña del dueño solo permite ver el Historial; no da acceso a Menú, Números, Apariencia ni Sistema.</p>
+        <button class="btn btn-primary" onclick="saveNumbers()">Guardar cambios</button>
+      </div>
+
+      <div class="pane" id="paneApariencia">
+        <label>Logotipo</label>
+        <div class="logo-preview-row">
+          <span id="logoPreviewEmoji" class="logo-emoji">☕</span>
+          <img id="logoPreviewImg" class="logo-preview-img" alt="Vista previa del logo">
+        </div>
+        <input type="file" id="logoFile" accept="image/*" onchange="handleLogoFile(event)">
+        <p class="hint">Se ajusta automáticamente a un tamaño pequeño para que la app no pese. Formatos: JPG, PNG o WEBP.</p>
+        <button class="btn btn-outline" onclick="removeLogo()" style="margin-top:8px;">Quitar imagen (usar taza ☕)</button>
+
+        <label style="margin-top:20px;">Color de fondo del encabezado</label>
+        <input type="color" id="headerColorInput" style="height:44px;padding:4px;">
+
+        <button class="btn btn-primary" onclick="saveAppearance()">Guardar apariencia</button>
+      </div>
+
+      <div class="pane" id="paneSistema">
+        <p class="hint" style="margin-top:0;">Bloquea el sistema para que nadie pueda hacer pedidos (por ejemplo, fuera de horario). Se aplica al instante en todos los celulares — tú siempre puedes volver a entrar aquí con tu PIN para desbloquearlo.</p>
+        <p style="font-weight:700;margin:14px 0 10px;" id="systemStatusText">Estado: cargando…</p>
+        <button class="btn btn-primary" id="lockToggleBtn" onclick="toggleSystemLock()" style="width:100%;">Cargando…</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <p class="w-eyebrow">Café Morena</p>
+    <h2>🔒 Cerrado por ahora</h2>
+    <p class="w-sub">No se están recibiendo pedidos en este momento. Vuelve a intentarlo más tarde. Favor de hacer el Pago correspondiente!</p>
+    <button class="enter-btn" onclick="openAdmin()">Soy administrador Delly Technologies </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDIbPlpN5qqPaESf684Beevq9AkfYQVVxE",
+  authDomain: "cafe-morena.firebaseapp.com",
+  projectId: "cafe-morena",
+  storageBucket: "cafe-morena.firebasestorage.app",
+  messagingSenderId: "607308721174",
+  appId: "1:607308721174:web:d77a21abfee8529b28d937"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const menuDocRef = db.collection('cafeteria').doc('menu');
+const appearanceDocRef = db.collection('cafeteria').doc('appearance');
+const numbersDocRef = db.collection('cafeteria').doc('numbers');
+const statusDocRef = db.collection('cafeteria').doc('status');
+const pinDocRef = db.collection('cafeteria').doc('security');
+const historyColRef = db.collection('cafeteria').doc('meta').collection('historial');
+</script>
+<script>
+const DEFAULT_MENU = [
+  {id:'t1',cat:'Tacos',name:'Taco de Pastor',price:18},
+  {id:'t2',cat:'Tacos',name:'Taco de Asada',price:20},
+  {id:'t3',cat:'Tacos',name:'Taco de Bistec',price:20},
+  {id:'t4',cat:'Tacos',name:'Taco de Chorizo',price:18},
+  {id:'t5',cat:'Tacos',name:'Taco Campechano',price:22},
+  {id:'q1',cat:'Quesadillas',name:'Quesadilla de Queso',price:35},
+  {id:'q2',cat:'Quesadillas',name:'Quesadilla de Champiñón',price:40},
+  {id:'q3',cat:'Quesadillas',name:'Quesadilla Flor de Calabaza',price:45},
+  {id:'b1',cat:'Bebidas',name:'Coca-Cola',price:25},
+  {id:'b2',cat:'Bebidas',name:'Agua Fresca',price:20},
+  {id:'b3',cat:'Bebidas',name:'Cerveza',price:35},
+  {id:'e1',cat:'Extras',name:'Orden de Tortillas',price:15},
+  {id:'e2',cat:'Extras',name:'Guacamole',price:30},
+];
+const DEFAULT_NUMBERS = {cocina:'524444923338', dueno:''};
+const DEFAULT_PIN = '1234';
+
+let menu = DEFAULT_MENU;
+let numbers = DEFAULT_NUMBERS;
+let pin = DEFAULT_PIN;
+let duenoPass = '';
+let history = [];
+let logo = null;
+let headerColor = '#1c1a17';
+let pendingLogo = logo;
+let order = {};
+let orderConfirmed = false;
+let activeCat = null;
+let tipoPedido = 'mesa';
+
+function initMenuSync(){
+  menuDocRef.onSnapshot(function(doc){
+    if(doc.exists && doc.data().items){
+      menu = doc.data().items;
+    } else {
+      menu = DEFAULT_MENU;
+      menuDocRef.set({items: DEFAULT_MENU});
+    }
+    renderCats();
+    renderMenu();
+    renderOrder();
+    if(document.getElementById('adminPanel').style.display === 'block'){
+      const catSelect = document.getElementById('newItemCat');
+      catSelect.innerHTML = categories().map(c=>`<option value="${c}">${c}</option>`).join('');
+      renderItemsList();
+    }
+  }, function(err){
+    showToast('No se pudo conectar al menú compartido');
+  });
+}
+
+function saveMenuToCloud(){
+  menuDocRef.set({items: menu});
+}
+
+function initAppearanceSync(){
+  appearanceDocRef.onSnapshot(function(doc){
+    if(doc.exists){
+      const data = doc.data();
+      logo = data.logo || null;
+      headerColor = data.headerColor || '#1c1a17';
+    } else {
+      appearanceDocRef.set({logo: null, headerColor: '#1c1a17'});
+    }
+    applyAppearance();
+    if(document.getElementById('adminPanel').style.display === 'block'){
+      document.getElementById('headerColorInput').value = headerColor;
+      pendingLogo = logo;
+      refreshLogoPreview();
+    }
+  }, function(err){
+    showToast('No se pudo conectar a la apariencia compartida');
+  });
+}
+
+function initNumbersSync(){
+  numbersDocRef.onSnapshot(function(doc){
+    if(doc.exists){
+      numbers = doc.data();
+    } else {
+      numbers = DEFAULT_NUMBERS;
+      numbersDocRef.set(DEFAULT_NUMBERS);
+    }
+    if(document.getElementById('adminPanel').style.display === 'block'){
+      document.getElementById('numCocina').value = numbers.cocina || '';
+      document.getElementById('numDueno').value = numbers.dueno || '';
+    }
+  }, function(err){
+    showToast('No se pudo conectar a los números compartidos');
+  });
+}
+
+let systemLocked = false;
+
+function initLockSync(){
+  statusDocRef.onSnapshot(function(doc){
+    if(doc.exists){
+      systemLocked = !!doc.data().locked;
+    } else {
+      systemLocked = false;
+      statusDocRef.set({locked: false});
+    }
+    applyLockState();
+  }, function(err){
+    showToast('No se pudo conectar al estado del sistema');
+  });
+}
+
+function applyLockState(){
+  document.getElementById('lockScreen').classList.toggle('show', systemLocked);
+  const statusText = document.getElementById('systemStatusText');
+  const toggleBtn = document.getElementById('lockToggleBtn');
+  if(statusText && toggleBtn){
+    statusText.textContent = 'Estado: ' + (systemLocked ? '🔒 Bloqueado (nadie puede pedir)' : '🔓 Abierto (recibiendo pedidos)');
+    toggleBtn.textContent = systemLocked ? 'Desbloquear sistema' : 'Bloquear sistema';
+  }
+}
+
+function initPinSync(){
+  pinDocRef.onSnapshot(function(doc){
+    if(doc.exists && doc.data().pin){
+      pin = doc.data().pin;
+      duenoPass = doc.data().duenoPass || '';
+    } else {
+      pin = DEFAULT_PIN;
+      duenoPass = '';
+      pinDocRef.set({pin: DEFAULT_PIN, duenoPass: ''});
+    }
+    if(document.getElementById('adminPanel').style.display === 'block'){
+      document.getElementById('duenoPassInput').value = duenoPass;
+    }
+  }, function(err){
+    showToast('No se pudo conectar al PIN compartido');
+  });
+}
+
+function toggleSystemLock(){
+  systemLocked = !systemLocked;
+  statusDocRef.set({locked: systemLocked});
+  applyLockState();
+  showToast(systemLocked ? 'Sistema bloqueado' : 'Sistema desbloqueado');
+}
+
+function load(key, fallback){
+  try{
+    const raw = localStorage.getItem('taqueria_'+key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ return fallback; }
+}
+function save(key, val){
+  localStorage.setItem('taqueria_'+key, JSON.stringify(val));
+}
+
+function switchView(name){
+  document.getElementById('viewWelcome').classList.toggle('active', name==='welcome');
+  document.getElementById('viewMenu').classList.toggle('active', name==='menu');
+  document.getElementById('viewOrder').classList.toggle('active', name==='order');
+  document.getElementById('viewHistory').classList.toggle('active', name==='history');
+  document.getElementById('navMenuBtn').classList.toggle('active', name==='menu');
+  document.getElementById('navOrderBtn').classList.toggle('active', name==='order');
+  document.getElementById('navHistBtn').classList.toggle('active', name==='history');
+  if(name==='history'){
+    if(historyUnlocked){
+      renderHistory();
+    } else {
+      document.getElementById('historyPinGate').style.display = 'block';
+      document.getElementById('historyContent').style.display = 'none';
+      document.getElementById('histPinInput').value = '';
+    }
+  }
+  window.scrollTo(0,0);
+}
+
+let historyUnlocked = false;
+
+function checkHistoryPin(){
+  const val = document.getElementById('histPinInput').value;
+  if(val === pin || (duenoPass && val === duenoPass)){
+    historyUnlocked = true;
+    document.getElementById('historyPinGate').style.display = 'none';
+    document.getElementById('historyContent').style.display = 'block';
+    renderHistory();
+  } else {
+    showToast('Contraseña incorrecta');
+  }
+}
+
+function enterApp(){
+  document.getElementById('bottomNav').classList.add('show');
+  switchView('menu');
+}
+
+function renderQR(){
+  const container = document.getElementById('qrContainer');
+  if(!container || typeof QRCode === 'undefined') return;
+  container.innerHTML = '';
+  new QRCode(container, {
+    text: window.location.href,
+    width: 168,
+    height: 168,
+    colorDark: '#241f19',
+    colorLight: '#ffffff'
+  });
+}
+
+function categories(){
+  return [...new Set(menu.map(i=>i.cat))];
+}
+
+function renderCats(){
+  const cats = categories();
+  if(!activeCat || !cats.includes(activeCat)) activeCat = cats[0];
+  const nav = document.getElementById('catNav');
+  nav.innerHTML = cats.map(c =>
+    `<button class="${c===activeCat?'active':''}" onclick="selectCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function selectCat(c){
+  activeCat = c;
+  renderCats();
+  renderMenu();
+}
+
+function renderMenu(){
+  const main = document.getElementById('menuMain');
+  const cats = categories();
+  main.innerHTML = cats.map(c => {
+    const items = menu.filter(i=>i.cat===c);
+    if(c !== activeCat) return '';
+    return `<div class="cat-title">${c}</div>` + (items.length ? items.map(renderItem).join('') : '<div class="empty-cat">Sin platillos en esta categoría todavía.</div>');
+  }).join('');
+}
+
+function renderItem(item){
+  const qty = order[item.id] || 0;
+  const thumb = item.image ? `<img class="item-thumb" src="${item.image}" alt="${item.name}">` : '';
+  return `
+    <div class="item-card">
+      <div class="item-left">
+        ${thumb}
+        <div class="item-info">
+          <h3>${item.name}</h3>
+          <div class="price">$${item.price}</div>
+        </div>
+      </div>
+      <div class="stepper">
+        <button onclick="changeQty('${item.id}',-1)">−</button>
+        <span class="qty">${qty}</span>
+        <button class="plus" onclick="changeQty('${item.id}',1)">+</button>
+      </div>
+    </div>`;
+}
+
+function changeQty(id, delta){
+  const current = order[id] || 0;
+  const next = Math.max(0, current + delta);
+  if(next === 0) delete order[id];
+  else order[id] = next;
+  if(orderConfirmed){ orderConfirmed = false; updateConfirmUI(); }
+  renderMenu();
+  renderOrder();
+}
+
+function setTipo(tipo){
+  tipoPedido = tipo;
+  document.getElementById('tipoMesaBtn').classList.toggle('active', tipo==='mesa');
+  document.getElementById('tipoLlevarBtn').classList.toggle('active', tipo==='llevar');
+  document.getElementById('refInput').placeholder = tipo==='mesa' ? 'Número de mesa' : 'Nombre para el pedido';
+}
+
+function renderOrder(){
+  const ids = Object.keys(order);
+  const lines = ids.map(id => {
+    const item = menu.find(m=>m.id===id);
+    if(!item) return '';
+    const qty = order[id];
+    const subtotal = qty * item.price;
+    return `<div class="ticket-line">
+      <span>${qty}x ${item.name}</span>
+      <span>$${subtotal} <span class="rm" onclick="removeLine('${id}')">✕</span></span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ticketLines').innerHTML = lines || '<div class="empty-ticket">Aún no has agregado platillos. Ve a la pestaña Menú.</div>';
+
+  const total = ids.reduce((sum,id)=>{
+    const item = menu.find(m=>m.id===id);
+    return sum + (item ? item.price*order[id] : 0);
+  },0);
+  const count = ids.reduce((s,id)=>s+order[id],0);
+
+  document.getElementById('orderTotal').textContent = `$${total}`;
+
+  const badge = document.getElementById('orderBadge');
+  if(count > 0){
+    badge.style.display = 'flex';
+    badge.textContent = count;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function removeLine(id){
+  delete order[id];
+  if(orderConfirmed){ orderConfirmed = false; updateConfirmUI(); }
+  renderMenu();
+  renderOrder();
+}
+
+function clearOrder(){
+  order = {};
+  document.getElementById('refInput').value = '';
+  document.getElementById('notesInput').value = '';
+  orderConfirmed = false;
+  updateConfirmUI();
+  renderMenu();
+  renderOrder();
+}
+
+function currentOrderData(){
+  const ids = Object.keys(order);
+  if(ids.length === 0) return null;
+  const ref = document.getElementById('refInput').value.trim();
+  const notes = document.getElementById('notesInput').value.trim();
+  let total = 0;
+  const items = ids.map(id=>{
+    const item = menu.find(m=>m.id===id);
+    const qty = order[id];
+    total += qty*item.price;
+    return {name:item.name, qty, price:item.price};
+  });
+  return {tipo:tipoPedido, ref: ref || (tipoPedido==='mesa' ? 'Sin especificar' : 'Sin nombre'), notes, items, total};
+}
+
+function buildMessage(data){
+  const tipoLabel = data.tipo === 'mesa' ? `🍽️ Mesa: ${data.ref}` : `🥡 Para llevar — Nombre: ${data.ref}`;
+  const lines = data.items.map(i => `- ${i.qty}x ${i.name} ($${i.qty*i.price})`).join('\n');
+  const time = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  let msg = `🌮 *NUEVO PEDIDO*\n${tipoLabel}\n\n${lines}\n\n`;
+  if(data.notes) msg += `📝 Nota: ${data.notes}\n\n`;
+  msg += `*Total: $${data.total}*\nHora: ${time}`;
+  return msg;
+}
+
+function sendOrder(){
+  if(!orderConfirmed){
+    showToast('Primero finaliza el pedido con el botón verde');
+    return;
+  }
+  const data = currentOrderData();
+  if(!data){
+    showToast('Agrega al menos un platillo antes de enviar');
+    return;
+  }
+  const destinos = ['cocina','dueno'];
+  const activeNumbers = destinos.map(d => numbers[d]).filter(Boolean);
+  if(activeNumbers.length === 0){
+    showToast('Configura al menos un número en ⚙ Configuración');
+    return;
+  }
+  const msg = buildMessage(data);
+  // Se abren todos en el mismo gesto de clic para que el navegador no los bloquee.
+  activeNumbers.forEach(phone => {
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  });
+  showToast(activeNumbers.length > 1 ? 'Abriendo WhatsApp para cada destino…' : 'Abriendo WhatsApp…');
+  clearOrder();
+}
+
+function updateConfirmUI(){
+  const finalizeBtn = document.getElementById('finalizeBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const hint = document.getElementById('confirmHint');
+  if(orderConfirmed){
+    finalizeBtn.textContent = '✅ Pedido confirmado';
+    finalizeBtn.classList.add('confirmed');
+    sendBtn.disabled = false;
+    hint.textContent = 'Listo, ya puedes enviarlo por WhatsApp.';
+  } else {
+    finalizeBtn.textContent = '✅ Finalizar y guardar en historial';
+    finalizeBtn.classList.remove('confirmed');
+    sendBtn.disabled = true;
+    hint.textContent = 'Finaliza el pedido para poder enviarlo por WhatsApp.';
+  }
+}
+
+function finalizeOrder(){
+  if(orderConfirmed) return;
+  const data = currentOrderData();
+  if(!data){
+    showToast('Agrega al menos un platillo antes de finalizar');
+    return;
+  }
+  historyColRef.add({
+    ts: Date.now(),
+    tipo: data.tipo,
+    ref: data.ref,
+    items: data.items,
+    total: data.total,
+    notes: data.notes
+  });
+  orderConfirmed = true;
+  updateConfirmUI();
+  showToast('Pedido guardado en historial. Ya puedes enviarlo.');
+}
+
+function initHistorySync(){
+  historyColRef.orderBy('ts','desc').limit(300).onSnapshot(function(snapshot){
+    history = [];
+    snapshot.forEach(function(doc){
+      history.push(Object.assign({id: doc.id}, doc.data()));
+    });
+    if(historyUnlocked && document.getElementById('viewHistory').classList.contains('active')){
+      renderHistory();
+    }
+  }, function(err){
+    showToast('No se pudo conectar al historial compartido');
+  });
+}
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  if(history.length === 0){
+    list.innerHTML = '<div class="empty-hist">Todavía no hay pedidos finalizados.</div>';
+    return;
+  }
+  list.innerHTML = history.map(h => {
+    const date = new Date(h.ts);
+    const dateStr = date.toLocaleDateString('es-MX',{day:'2-digit',month:'short'});
+    const timeStr = date.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    const tipoIcon = h.tipo === 'mesa' ? '🍽️' : '🥡';
+    const itemsHtml = h.items.map(i=>`<div>${i.qty}x ${i.name} — $${i.qty*i.price}</div>`).join('');
+    return `
+      <div class="hist-card" onclick="this.classList.toggle('open')">
+        <div class="hist-top">
+          <span class="ref">${tipoIcon} ${h.ref}</span>
+          <span class="total">$${h.total}</span>
+        </div>
+        <div class="hist-meta">${dateStr}, ${timeStr}</div>
+        <div class="hist-details">
+          ${itemsHtml}
+          ${h.notes ? `<div style="margin-top:6px;color:var(--muted);">📝 ${h.notes}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function clearHistory(){
+  if(history.length === 0) return;
+  if(confirm('¿Borrar todo el historial de pedidos? Esta acción no se puede deshacer.')){
+    const deletions = history.map(h => historyColRef.doc(h.id).delete());
+    Promise.all(deletions).then(function(){
+      showToast('Historial borrado');
+    });
+  }
+}
+
+function openAdmin(){
+  document.getElementById('adminBg').classList.add('show');
+  document.getElementById('pinGate').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('pinInput').value = '';
+}
+function closeAdmin(){
+  document.getElementById('adminBg').classList.remove('show');
+}
+function checkPin(){
+  const val = document.getElementById('pinInput').value;
+  if(val === pin){
+    document.getElementById('pinGate').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    populateAdmin();
+  } else {
+    showToast('PIN incorrecto');
+  }
+}
+function resetPinPrompt(){
+  if(confirm('Esto restablece el PIN de administrador a 1234 para TODOS los celulares (es un PIN compartido). ¿Continuar?')){
+    pinDocRef.set({pin: DEFAULT_PIN, duenoPass: duenoPass});
+    document.getElementById('pinInput').value = '';
+    showToast('PIN restablecido a 1234');
+  }
+}
+function showPane(name){
+  document.getElementById('paneMenu').classList.toggle('active', name==='menu');
+  document.getElementById('paneNumeros').classList.toggle('active', name==='numeros');
+  document.getElementById('paneApariencia').classList.toggle('active', name==='apariencia');
+  document.getElementById('paneSistema').classList.toggle('active', name==='sistema');
+  document.getElementById('tabMenuBtn').classList.toggle('active', name==='menu');
+  document.getElementById('tabNumBtn').classList.toggle('active', name==='numeros');
+  document.getElementById('tabApBtn').classList.toggle('active', name==='apariencia');
+  document.getElementById('tabSysBtn').classList.toggle('active', name==='sistema');
+}
+function populateAdmin(){
+  document.getElementById('numCocina').value = numbers.cocina || '';
+  document.getElementById('numDueno').value = numbers.dueno || '';
+  document.getElementById('newPin').value = '';
+  document.getElementById('duenoPassInput').value = duenoPass || '';
+
+  const catSelect = document.getElementById('newItemCat');
+  catSelect.innerHTML = categories().map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  renderItemsList();
+
+  document.getElementById('headerColorInput').value = headerColor;
+  pendingLogo = logo;
+  refreshLogoPreview();
+
+  applyLockState();
+}
+function renderItemsList(){
+  const list = document.getElementById('itemsList');
+  list.innerHTML = menu.map(item => {
+    const thumb = item.image
+      ? `<img class="row-thumb" src="${item.image}" onclick="openImagePicker('${item.id}')" title="Cambiar foto">`
+      : `<div class="row-thumb-empty" onclick="openImagePicker('${item.id}')" title="Agregar foto">📷</div>`;
+    const removePhoto = item.image
+      ? `<span class="del" style="font-size:11px;font-weight:600;" onclick="removeItemImage('${item.id}')" title="Quitar foto">Quitar foto</span>`
+      : '';
+    return `
+    <div class="menu-item-row">
+      ${thumb}
+      <span style="flex:1;">${item.name}</span>
+      <span style="width:60px;">$${item.price}</span>
+      <span style="width:90px;color:var(--muted);">${item.cat}</span>
+      ${removePhoto}
+      <span class="del" onclick="deleteItem('${item.id}')">✕</span>
+    </div>`;
+  }).join('');
+}
+
+function removeItemImage(id){
+  const item = menu.find(m=>m.id===id);
+  if(item){
+    delete item.image;
+    saveMenuToCloud();
+    renderItemsList();
+    renderMenu();
+    showToast('Foto quitada, sincronizando…');
+  }
+}
+function addItem(){
+  const name = document.getElementById('newItemName').value.trim();
+  const price = parseFloat(document.getElementById('newItemPrice').value);
+  const newCat = document.getElementById('newCatName').value.trim();
+  const cat = newCat || document.getElementById('newItemCat').value;
+  if(!name || isNaN(price) || !cat){
+    showToast('Completa nombre, precio y categoría');
+    return;
+  }
+  const id = 'i' + Date.now();
+  const newItem = {id, cat, name, price};
+  if(pendingNewItemImage) newItem.image = pendingNewItemImage;
+  menu.push(newItem);
+  saveMenuToCloud();
+  document.getElementById('newItemName').value = '';
+  document.getElementById('newItemPrice').value = '';
+  document.getElementById('newCatName').value = '';
+  removeNewItemPhoto();
+  populateAdmin();
+  renderCats();
+  renderMenu();
+  showToast('Platillo agregado, sincronizando…');
+}
+function deleteItem(id){
+  menu = menu.filter(i=>i.id!==id);
+  saveMenuToCloud();
+  renderItemsList();
+  renderCats();
+  renderMenu();
+}
+function saveNumbers(){
+  const newCocina = document.getElementById('numCocina').value.trim();
+  const newDueno = document.getElementById('numDueno').value.trim();
+  numbers = {cocina: newCocina, dueno: newDueno};
+  numbersDocRef.set(numbers);
+
+  const newPinVal = document.getElementById('newPin').value.trim();
+  const newDuenoPass = document.getElementById('duenoPassInput').value.trim();
+  pinDocRef.set({
+    pin: newPinVal || pin,
+    duenoPass: newDuenoPass
+  });
+  showToast('Guardado, sincronizando con todos los celulares…');
+}
+
+let pendingNewItemImage = null;
+let imageTargetId = null; // null = platillo nuevo, id = platillo existente
+
+function openImagePicker(targetId){
+  imageTargetId = targetId;
+  document.getElementById('itemPhotoFile').value = '';
+  document.getElementById('itemPhotoFile').click();
+}
+
+function handleItemImage(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const maxSize = 240;
+      let w = img.width, h = img.height;
+      if(w > h){ if(w > maxSize){ h = Math.round(h*maxSize/w); w = maxSize; } }
+      else { if(h > maxSize){ w = Math.round(w*maxSize/h); h = maxSize; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+
+      if(imageTargetId === null){
+        pendingNewItemImage = dataUrl;
+        refreshNewItemPhotoPreview();
+      } else {
+        const item = menu.find(m=>m.id===imageTargetId);
+        if(item){
+          item.image = dataUrl;
+          saveMenuToCloud();
+          renderItemsList();
+          renderMenu();
+          showToast('Foto actualizada, sincronizando…');
+        }
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function refreshNewItemPhotoPreview(){
+  const preview = document.getElementById('newItemPhotoPreview');
+  const removeBtn = document.getElementById('newItemPhotoRemoveBtn');
+  if(pendingNewItemImage){
+    preview.src = pendingNewItemImage;
+    preview.style.display = 'block';
+    removeBtn.style.display = 'inline-block';
+  } else {
+    preview.style.display = 'none';
+    removeBtn.style.display = 'none';
+  }
+}
+
+function removeNewItemPhoto(){
+  pendingNewItemImage = null;
+  refreshNewItemPhotoPreview();
+}
+
+function handleLogoFile(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const maxSize = 160;
+      let w = img.width, h = img.height;
+      if(w > h){ if(w > maxSize){ h = Math.round(h*maxSize/w); w = maxSize; } }
+      else { if(h > maxSize){ w = Math.round(w*maxSize/h); h = maxSize; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      pendingLogo = canvas.toDataURL('image/jpeg', 0.85);
+      refreshLogoPreview();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function refreshLogoPreview(){
+  const emoji = document.getElementById('logoPreviewEmoji');
+  const imgEl = document.getElementById('logoPreviewImg');
+  if(pendingLogo){
+    imgEl.src = pendingLogo;
+    imgEl.style.display = 'block';
+    emoji.style.display = 'none';
+  } else {
+    imgEl.style.display = 'none';
+    emoji.style.display = 'block';
+  }
+}
+function removeLogo(){
+  pendingLogo = null;
+  document.getElementById('logoFile').value = '';
+  refreshLogoPreview();
+}
+function saveAppearance(){
+  logo = pendingLogo;
+  headerColor = document.getElementById('headerColorInput').value;
+  appearanceDocRef.set({logo: logo, headerColor: headerColor});
+  applyAppearance();
+  showToast('Apariencia guardada, sincronizando…');
+}
+function applyAppearance(){
+  document.getElementById('headerTop').style.background = headerColor;
+  const logoImg = document.getElementById('logoImg');
+  const logoEmoji = document.getElementById('logoEmoji');
+  if(logo){
+    logoImg.src = logo;
+    logoImg.style.display = 'block';
+    logoEmoji.style.display = 'none';
+  } else {
+    logoImg.style.display = 'none';
+    logoEmoji.style.display = 'block';
+  }
+}
+
+let toastTimer;
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+setTipo('mesa');
+applyAppearance();
+initMenuSync();
+initAppearanceSync();
+initNumbersSync();
+initLockSync();
+initPinSync();
+initHistorySync();
+renderCats();
+renderMenu();
+renderOrder();
+updateConfirmUI();
+renderQR();
+</script>
+</body>
+</html>
