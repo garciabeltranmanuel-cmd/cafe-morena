@@ -347,6 +347,38 @@
     gap:8px;
     align-items:center;
   }
+  .guiso-row-admin{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    align-items:center;
+  }
+  .guiso-check-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 18px;
+    margin-top:10px;
+    padding-bottom:10px;
+    border-bottom:1px dashed var(--paper-line);
+  }
+  .guiso-check-list label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    margin:0;
+    text-transform:none;
+    letter-spacing:0;
+  }
+  .guiso-check-list input[type="checkbox"]{
+    width:18px;height:18px;
+  }
+  .add-to-order-btn{
+    margin-top:12px;
+    width:100%;
+  }
 
   .order-card{
     background:var(--paper);
@@ -858,9 +890,19 @@
           Este platillo tiene varios precios (ej. Gordita / Sope / Quesadilla)
         </label>
         <div id="variantRows" style="display:none;">
-          <p class="hint" style="margin-top:4px;">Cuando actives esto, el campo "Precio" de arriba se ignora — usa las filas de abajo. El nombre de arriba es el del platillo (ej. "Cachete"); cada fila es una presentación con su propio precio.</p>
+          <p class="hint" style="margin-top:4px;">Cuando actives esto, el campo "Precio" de arriba se ignora — usa las filas de abajo. El nombre de arriba es el nombre del grupo (ej. "Guisos"); cada fila es una presentación con su propio precio (ej. Gordita, Sope, Quesadilla).</p>
           <div class="variant-rows-admin" id="variantRowsList"></div>
           <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="addVariantRow()">+ Agregar otra presentación</button>
+
+          <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-weight:600;">
+            <input type="checkbox" id="hasGuisosToggle" onchange="toggleGuisosSection()" style="width:auto;">
+            Este platillo tiene varios guisos para elegir (ej. Cachete, Deshebrada, Queso Asadero)
+          </label>
+          <div id="guisoRows" style="display:none;">
+            <p class="hint" style="margin-top:4px;">El cliente podrá marcar uno o varios guisos con check, y las cantidades de presentación de arriba se aplican a cada guiso marcado.</p>
+            <div class="variant-rows-admin" id="guisoRowsList"></div>
+            <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="addGuisoRow()">+ Agregar guiso</button>
+          </div>
         </div>
         <div class="new-item-photo-row">
           <img id="newItemPhotoPreview" alt="Vista previa">
@@ -1180,6 +1222,41 @@ function renderMenu(){
 function renderItem(item){
   const thumb = item.image ? `<img class="item-thumb" src="${item.image}" alt="${item.name}">` : '';
 
+  if(item.variants && item.variants.length && item.guisos && item.guisos.length){
+    const st = ensureGuisoState(item.id);
+    const checkRow = item.guisos.map((g, gIdx) => {
+      const key = String(gIdx);
+      const checked = st.checked.has(key) ? 'checked' : '';
+      return `<label><input type="checkbox" ${checked} onchange="toggleGuisoCheck('${item.id}',${gIdx})">${g}</label>`;
+    }).join('');
+    const rows = item.variants.map((v, vIdx) => {
+      const key = String(vIdx);
+      const qty = st.counts[key] || 0;
+      return `
+        <div class="variant-row">
+          <span class="variant-label">${v.label}<b>$${v.price}</b></span>
+          <div class="stepper">
+            <button onclick="changeGuisoQty('${item.id}',${vIdx},-1)">−</button>
+            <span class="qty">${qty}</span>
+            <button class="plus" onclick="changeGuisoQty('${item.id}',${vIdx},1)">+</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+    <div class="item-card variant-card">
+      <div class="item-left">
+        ${thumb}
+        <div class="item-info">
+          <h3>${item.name}</h3>
+        </div>
+      </div>
+      <p class="hint" style="margin:8px 0 0;">Marca el/los guiso(s) que quieres, luego pon cuántas gorditas/sopes/etc de cada uno:</p>
+      <div class="guiso-check-list">${checkRow}</div>
+      <div class="variant-list">${rows}</div>
+      <button type="button" class="btn btn-primary add-to-order-btn" onclick="commitGuisoSelection('${item.id}')">Agregar al pedido</button>
+    </div>`;
+  }
+
   if(item.variants && item.variants.length){
     const rows = item.variants.map((v, idx) => {
       const vid = `${item.id}::${idx}`;
@@ -1224,11 +1301,65 @@ function renderItem(item){
     </div>`;
 }
 
-// Devuelve {name, price} para una línea de pedido, ya sea un platillo simple
-// (id = item.id) o una presentación de un platillo con variantes (id = "itemId::idx")
+// Estado temporal (no se guarda en el pedido hasta tocar "Agregar al pedido")
+// de qué guisos y cantidades se están seleccionando para un platillo con guisos.
+let pendingGuisoState = {};
+function ensureGuisoState(itemId){
+  if(!pendingGuisoState[itemId]) pendingGuisoState[itemId] = {checked:new Set(), counts:{}};
+  return pendingGuisoState[itemId];
+}
+function toggleGuisoCheck(itemId, gIdx){
+  const st = ensureGuisoState(itemId);
+  const key = String(gIdx);
+  if(st.checked.has(key)) st.checked.delete(key); else st.checked.add(key);
+  renderMenu();
+}
+function changeGuisoQty(itemId, vIdx, delta){
+  const st = ensureGuisoState(itemId);
+  const key = String(vIdx);
+  const current = st.counts[key] || 0;
+  const next = Math.max(0, current + delta);
+  if(next === 0) delete st.counts[key];
+  else st.counts[key] = next;
+  renderMenu();
+}
+function commitGuisoSelection(itemId){
+  const st = ensureGuisoState(itemId);
+  const guisoKeys = Array.from(st.checked);
+  const variantKeys = Object.keys(st.counts).filter(k => st.counts[k] > 0);
+  if(guisoKeys.length === 0 || variantKeys.length === 0){
+    showToast('Marca al menos un guiso y una cantidad');
+    return;
+  }
+  guisoKeys.forEach(gIdx => {
+    variantKeys.forEach(vIdx => {
+      const orderKey = `${itemId}::g${gIdx}::v${vIdx}`;
+      order[orderKey] = (order[orderKey] || 0) + st.counts[vIdx];
+    });
+  });
+  pendingGuisoState[itemId] = {checked:new Set(), counts:{}};
+  if(orderConfirmed){ orderConfirmed = false; updateConfirmUI(); }
+  renderMenu();
+  renderOrder();
+  showToast('Agregado al pedido');
+}
+
+// Devuelve {name, price} para una línea de pedido: platillo simple (id = item.id),
+// presentación de un platillo con variantes (id = "itemId::idx"), o
+// guiso + presentación de un platillo con guisos (id = "itemId::gN::vN")
 function resolveOrderLine(id){
-  if(id.includes('::')){
-    const [itemId, idxStr] = id.split('::');
+  const parts = id.split('::');
+  if(parts.length === 3){
+    const [itemId, gPart, vPart] = parts;
+    const item = menu.find(m=>m.id===itemId);
+    if(!item || !item.guisos || !item.variants) return null;
+    const guiso = item.guisos[parseInt(gPart.slice(1),10)];
+    const variant = item.variants[parseInt(vPart.slice(1),10)];
+    if(!guiso || !variant) return null;
+    return {name: `${item.name} - ${guiso} (${variant.label})`, price: variant.price};
+  }
+  if(parts.length === 2){
+    const [itemId, idxStr] = parts;
     const item = menu.find(m=>m.id===itemId);
     if(!item || !item.variants) return null;
     const variant = item.variants[parseInt(idxStr,10)];
@@ -1508,7 +1639,7 @@ function renderItemsList(){
       ? `<span class="del" style="font-size:11px;font-weight:600;" onclick="removeItemImage('${item.id}')" title="Quitar foto">Quitar foto</span>`
       : '';
     const priceDisplay = item.variants
-      ? item.variants.map(v=>`${v.label}: $${v.price}`).join(' · ')
+      ? item.variants.map(v=>`${v.label}: $${v.price}`).join(' · ') + (item.guisos && item.guisos.length ? ` — Guisos: ${item.guisos.join(', ')}` : '')
       : `$${item.price}`;
     return `
     <div class="menu-item-row">
@@ -1556,12 +1687,35 @@ function addVariantRow(){
     <span class="del" onclick="document.getElementById('${rowId}').remove()">✕</span>`;
   document.getElementById('variantRowsList').appendChild(wrap);
 }
+let guisoRowCount = 0;
+function toggleGuisosSection(){
+  const on = document.getElementById('hasGuisosToggle').checked;
+  document.getElementById('guisoRows').style.display = on ? 'block' : 'none';
+  if(on && document.getElementById('guisoRowsList').children.length === 0){
+    addGuisoRow();
+    addGuisoRow();
+  }
+}
+function addGuisoRow(){
+  guisoRowCount++;
+  const rowId = 'gr' + guisoRowCount;
+  const wrap = document.createElement('div');
+  wrap.className = 'guiso-row-admin';
+  wrap.id = rowId;
+  wrap.innerHTML = `
+    <input type="text" placeholder="Nombre del guiso (ej. Cachete)" class="gr-label">
+    <span class="del" onclick="document.getElementById('${rowId}').remove()">✕</span>`;
+  document.getElementById('guisoRowsList').appendChild(wrap);
+}
 function resetVariantForm(){
   document.getElementById('multiPriceToggle').checked = false;
   document.getElementById('variantRows').style.display = 'none';
   document.getElementById('newItemPrice').disabled = false;
   document.getElementById('newItemPrice').placeholder = 'Precio';
   document.getElementById('variantRowsList').innerHTML = '';
+  document.getElementById('hasGuisosToggle').checked = false;
+  document.getElementById('guisoRows').style.display = 'none';
+  document.getElementById('guisoRowsList').innerHTML = '';
 }
 let editingItemId = null;
 function addItem(){
@@ -1588,6 +1742,11 @@ function addItem(){
       return;
     }
     dataFields = {cat, name, variants};
+    if(document.getElementById('hasGuisosToggle').checked){
+      const gRows = Array.from(document.querySelectorAll('#guisoRowsList .guiso-row-admin'));
+      const guisos = gRows.map(r => r.querySelector('.gr-label').value.trim()).filter(Boolean);
+      if(guisos.length >= 1) dataFields.guisos = guisos;
+    }
   } else {
     const price = parseFloat(document.getElementById('newItemPrice').value);
     if(isNaN(price)){
@@ -1602,6 +1761,7 @@ function addItem(){
     if(existing){
       delete existing.price;
       delete existing.variants;
+      delete existing.guisos;
       Object.assign(existing, dataFields);
       if(pendingNewItemImage) existing.image = pendingNewItemImage;
     }
@@ -1654,6 +1814,16 @@ function editItem(id){
       lastRow.querySelector('.vr-label').value = v.label;
       lastRow.querySelector('.vr-price').value = v.price;
     });
+    if(item.guisos && item.guisos.length){
+      document.getElementById('hasGuisosToggle').checked = true;
+      document.getElementById('guisoRows').style.display = 'block';
+      item.guisos.forEach(g=>{
+        addGuisoRow();
+        const rows = document.querySelectorAll('#guisoRowsList .guiso-row-admin');
+        const lastRow = rows[rows.length-1];
+        lastRow.querySelector('.gr-label').value = g;
+      });
+    }
   } else {
     document.getElementById('newItemPrice').value = item.price;
   }
