@@ -841,7 +841,7 @@
 
       <div class="pane active" id="paneMenu">
         <p class="hint" style="margin-top:0;">Los cambios aquí se ven en todos los celulares al instante — no solo en el tuyo. Las fotos se comprimen automáticamente; evita subir demasiadas fotos muy detalladas para no saturar el espacio compartido.</p>
-        <label>Nuevo platillo</label>
+        <label id="formModeLabel">Nuevo platillo</label>
         <div class="row3">
           <input type="text" id="newItemName" placeholder="Nombre">
           <input type="number" id="newItemPrice" placeholder="Precio">
@@ -850,8 +850,9 @@
         <div class="row3" style="margin-top:8px;">
           <input type="text" id="newCatName" placeholder="...o nueva categoría">
           <div></div>
-          <button class="btn btn-outline" onclick="addItem()">Agregar</button>
+          <button class="btn btn-outline" id="saveItemBtn" onclick="addItem()">Agregar</button>
         </div>
+        <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none;margin-top:8px;" onclick="cancelEditItem()">Cancelar edición</button>
         <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:600;">
           <input type="checkbox" id="multiPriceToggle" onchange="toggleMultiPrice()" style="width:auto;">
           Este platillo tiene varios precios (ej. Gordita / Sope / Quesadilla)
@@ -1516,6 +1517,7 @@ function renderItemsList(){
       <span style="width:auto;max-width:220px;font-size:12.5px;">${priceDisplay}</span>
       <span style="width:90px;color:var(--muted);">${item.cat}</span>
       ${removePhoto}
+      <span class="del" style="color:var(--ink);" onclick="editItem('${item.id}')" title="Editar">✎</span>
       <span class="del" onclick="deleteItem('${item.id}')">✕</span>
     </div>`;
   }).join('');
@@ -1561,6 +1563,7 @@ function resetVariantForm(){
   document.getElementById('newItemPrice').placeholder = 'Precio';
   document.getElementById('variantRowsList').innerHTML = '';
 }
+let editingItemId = null;
 function addItem(){
   const name = document.getElementById('newItemName').value.trim();
   const newCat = document.getElementById('newCatName').value.trim();
@@ -1572,8 +1575,7 @@ function addItem(){
     return;
   }
 
-  const id = 'i' + Date.now();
-  let newItem;
+  let dataFields;
 
   if(multiPrice){
     const rows = Array.from(document.querySelectorAll('#variantRowsList .variant-row-admin'));
@@ -1585,18 +1587,36 @@ function addItem(){
       showToast('Agrega al menos una presentación con nombre y precio');
       return;
     }
-    newItem = {id, cat, name, variants};
+    dataFields = {cat, name, variants};
   } else {
     const price = parseFloat(document.getElementById('newItemPrice').value);
     if(isNaN(price)){
       showToast('Completa nombre, precio y categoría');
       return;
     }
-    newItem = {id, cat, name, price};
+    dataFields = {cat, name, price};
   }
 
-  if(pendingNewItemImage) newItem.image = pendingNewItemImage;
-  menu.push(newItem);
+  if(editingItemId){
+    const existing = menu.find(m=>m.id===editingItemId);
+    if(existing){
+      delete existing.price;
+      delete existing.variants;
+      Object.assign(existing, dataFields);
+      if(pendingNewItemImage) existing.image = pendingNewItemImage;
+    }
+    editingItemId = null;
+    document.getElementById('formModeLabel').textContent = 'Nuevo platillo';
+    document.getElementById('saveItemBtn').textContent = 'Agregar';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+    showToast('Platillo actualizado, sincronizando…');
+  } else {
+    const newItem = {id: 'i' + Date.now(), ...dataFields};
+    if(pendingNewItemImage) newItem.image = pendingNewItemImage;
+    menu.push(newItem);
+    showToast('Platillo agregado, sincronizando…');
+  }
+
   saveMenuToCloud();
   document.getElementById('newItemName').value = '';
   document.getElementById('newItemPrice').value = '';
@@ -1606,9 +1626,53 @@ function addItem(){
   populateAdmin();
   renderCats();
   renderMenu();
-  showToast('Platillo agregado, sincronizando…');
+}
+function editItem(id){
+  const item = menu.find(m=>m.id===id);
+  if(!item) return;
+  editingItemId = id;
+  document.getElementById('formModeLabel').textContent = `Editando: ${item.name}`;
+  document.getElementById('saveItemBtn').textContent = 'Guardar cambios';
+  document.getElementById('cancelEditBtn').style.display = 'inline-block';
+
+  document.getElementById('newItemName').value = item.name;
+  document.getElementById('newCatName').value = '';
+  const catSelect = document.getElementById('newItemCat');
+  if(catSelect) catSelect.value = item.cat;
+
+  resetVariantForm();
+  if(item.variants && item.variants.length){
+    document.getElementById('multiPriceToggle').checked = true;
+    document.getElementById('variantRows').style.display = 'block';
+    document.getElementById('newItemPrice').disabled = true;
+    document.getElementById('newItemPrice').placeholder = 'No aplica (usa filas de abajo)';
+    document.getElementById('newItemPrice').value = '';
+    item.variants.forEach(v=>{
+      addVariantRow();
+      const rows = document.querySelectorAll('#variantRowsList .variant-row-admin');
+      const lastRow = rows[rows.length-1];
+      lastRow.querySelector('.vr-label').value = v.label;
+      lastRow.querySelector('.vr-price').value = v.price;
+    });
+  } else {
+    document.getElementById('newItemPrice').value = item.price;
+  }
+
+  document.getElementById('paneMenu').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function cancelEditItem(){
+  editingItemId = null;
+  document.getElementById('formModeLabel').textContent = 'Nuevo platillo';
+  document.getElementById('saveItemBtn').textContent = 'Agregar';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  document.getElementById('newItemName').value = '';
+  document.getElementById('newItemPrice').value = '';
+  document.getElementById('newCatName').value = '';
+  resetVariantForm();
+  removeNewItemPhoto();
 }
 function deleteItem(id){
+  if(editingItemId === id) cancelEditItem();
   menu = menu.filter(i=>i.id!==id);
   saveMenuToCloud();
   renderItemsList();
