@@ -379,6 +379,37 @@
     margin-top:12px;
     width:100%;
   }
+  .unit-assign-group{
+    margin-top:14px;
+    padding-top:10px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .unit-assign-title{
+    font-weight:700;
+    font-size:14px;
+    margin-bottom:8px;
+  }
+  .unit-select-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .unit-select{
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-radius:8px;
+    padding:7px 8px;
+    font-family:inherit;
+    font-size:13px;
+    color:var(--ink);
+    min-width:150px;
+  }
+  .guiso-step-nav{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+  }
+  .guiso-step-nav .btn{margin-top:0;}
 
   .order-card{
     background:var(--paper);
@@ -1224,11 +1255,43 @@ function renderItem(item){
 
   if(item.variants && item.variants.length && item.guisos && item.guisos.length){
     const st = ensureGuisoState(item.id);
-    const checkRow = item.guisos.map((g, gIdx) => {
-      const key = String(gIdx);
-      const checked = st.checked.has(key) ? 'checked' : '';
-      return `<label><input type="checkbox" ${checked} onchange="toggleGuisoCheck('${item.id}',${gIdx})">${g}</label>`;
-    }).join('');
+
+    if(st.step === 2){
+      const groups = item.variants.map((v, vIdx) => {
+        const count = st.counts[String(vIdx)] || 0;
+        if(count <= 0) return '';
+        const assigns = st.assignments[vIdx] || [];
+        const selects = Array.from({length: count}).map((_, uIdx) => {
+          const current = assigns[uIdx] || '';
+          const options = item.guisos.map((g, gIdx) =>
+            `<option value="${gIdx}" ${String(gIdx)===current?'selected':''}>${g}</option>`
+          ).join('');
+          return `<select class="unit-select" onchange="setUnitGuiso('${item.id}',${vIdx},${uIdx},this.value)">
+            <option value="">Elige guiso…</option>
+            ${options}
+          </select>`;
+        }).join('');
+        return `<div class="unit-assign-group">
+          <div class="unit-assign-title">${v.label} × ${count} — ¿de qué guiso es cada uno?</div>
+          <div class="unit-select-row">${selects}</div>
+        </div>`;
+      }).join('');
+      return `
+      <div class="item-card variant-card">
+        <div class="item-left">
+          ${thumb}
+          <div class="item-info">
+            <h3>${item.name}</h3>
+          </div>
+        </div>
+        ${groups}
+        <div class="guiso-step-nav">
+          <button type="button" class="btn btn-outline" style="flex:1;" onclick="goToGuisoStep1('${item.id}')">‹ Volver a cantidades</button>
+          <button type="button" class="btn btn-primary" style="flex:1;" onclick="commitGuisoAssignments('${item.id}')">Confirmar y agregar</button>
+        </div>
+      </div>`;
+    }
+
     const rows = item.variants.map((v, vIdx) => {
       const key = String(vIdx);
       const qty = st.counts[key] || 0;
@@ -1250,10 +1313,9 @@ function renderItem(item){
           <h3>${item.name}</h3>
         </div>
       </div>
-      <p class="hint" style="margin:8px 0 0;">Marca el/los guiso(s) que quieres, luego pon cuántas gorditas/sopes/etc de cada uno:</p>
-      <div class="guiso-check-list">${checkRow}</div>
+      <p class="hint" style="margin:8px 0 0;">Primero pon cuántas gorditas/sopes/etc quieres en total:</p>
       <div class="variant-list">${rows}</div>
-      <button type="button" class="btn btn-primary add-to-order-btn" onclick="commitGuisoSelection('${item.id}')">Agregar al pedido</button>
+      <button type="button" class="btn btn-primary add-to-order-btn" onclick="goToGuisoStep2('${item.id}')">Elegir guisos ›</button>
     </div>`;
   }
 
@@ -1301,18 +1363,12 @@ function renderItem(item){
     </div>`;
 }
 
-// Estado temporal (no se guarda en el pedido hasta tocar "Agregar al pedido")
-// de qué guisos y cantidades se están seleccionando para un platillo con guisos.
+// Estado temporal (no se guarda en el pedido hasta confirmar) de un platillo con guisos:
+// paso 1 = elegir cantidades por presentación; paso 2 = elegir el guiso de cada unidad.
 let pendingGuisoState = {};
 function ensureGuisoState(itemId){
-  if(!pendingGuisoState[itemId]) pendingGuisoState[itemId] = {checked:new Set(), counts:{}};
+  if(!pendingGuisoState[itemId]) pendingGuisoState[itemId] = {counts:{}, step:1, assignments:{}};
   return pendingGuisoState[itemId];
-}
-function toggleGuisoCheck(itemId, gIdx){
-  const st = ensureGuisoState(itemId);
-  const key = String(gIdx);
-  if(st.checked.has(key)) st.checked.delete(key); else st.checked.add(key);
-  renderMenu();
 }
 function changeGuisoQty(itemId, vIdx, delta){
   const st = ensureGuisoState(itemId);
@@ -1323,21 +1379,56 @@ function changeGuisoQty(itemId, vIdx, delta){
   else st.counts[key] = next;
   renderMenu();
 }
-function commitGuisoSelection(itemId){
+function goToGuisoStep2(itemId){
   const st = ensureGuisoState(itemId);
-  const guisoKeys = Array.from(st.checked);
-  const variantKeys = Object.keys(st.counts).filter(k => st.counts[k] > 0);
-  if(guisoKeys.length === 0 || variantKeys.length === 0){
-    showToast('Marca al menos un guiso y una cantidad');
+  const totalUnits = Object.values(st.counts).reduce((a,b)=>a+b, 0);
+  if(totalUnits === 0){
+    showToast('Pon al menos una cantidad antes de continuar');
     return;
   }
-  guisoKeys.forEach(gIdx => {
-    variantKeys.forEach(vIdx => {
+  // Reconstruye las asignaciones según las cantidades actuales
+  const newAssignments = {};
+  Object.keys(st.counts).forEach(vIdx=>{
+    const count = st.counts[vIdx];
+    const prev = st.assignments[vIdx] || [];
+    newAssignments[vIdx] = Array.from({length: count}).map((_, i) => prev[i] || '');
+  });
+  st.assignments = newAssignments;
+  st.step = 2;
+  renderMenu();
+}
+function goToGuisoStep1(itemId){
+  const st = ensureGuisoState(itemId);
+  st.step = 1;
+  renderMenu();
+}
+function setUnitGuiso(itemId, vIdx, uIdx, guisoIdx){
+  const st = ensureGuisoState(itemId);
+  if(!st.assignments[vIdx]) st.assignments[vIdx] = [];
+  st.assignments[vIdx][uIdx] = guisoIdx;
+}
+function commitGuisoAssignments(itemId){
+  const st = ensureGuisoState(itemId);
+  const item = menu.find(m=>m.id===itemId);
+  if(!item) return;
+
+  // Valida que cada unidad tenga guiso elegido
+  for(const vIdx of Object.keys(st.assignments)){
+    const list = st.assignments[vIdx];
+    if(list.some(g => !g)){
+      showToast('Falta elegir el guiso de alguno de los platillos');
+      return;
+    }
+  }
+
+  Object.keys(st.assignments).forEach(vIdx=>{
+    st.assignments[vIdx].forEach(gIdx=>{
       const orderKey = `${itemId}::g${gIdx}::v${vIdx}`;
-      order[orderKey] = (order[orderKey] || 0) + st.counts[vIdx];
+      order[orderKey] = (order[orderKey] || 0) + 1;
     });
   });
-  pendingGuisoState[itemId] = {checked:new Set(), counts:{}};
+
+  pendingGuisoState[itemId] = {counts:{}, step:1, assignments:{}};
   if(orderConfirmed){ orderConfirmed = false; updateConfirmUI(); }
   renderMenu();
   renderOrder();
