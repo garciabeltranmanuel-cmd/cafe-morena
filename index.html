@@ -269,6 +269,12 @@
     font-size:15.5px;
     font-weight:700;
   }
+  .item-info .item-desc{
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.35;
+    margin:0 0 6px;
+  }
   .item-info .price{
     font-family:'Space Mono',monospace;
     color:var(--chili-dark);
@@ -910,6 +916,7 @@
           <input type="number" id="newItemPrice" placeholder="Precio">
           <select id="newItemCat"></select>
         </div>
+        <input type="text" id="newItemDesc" placeholder="Descripción (opcional, ej. ingredientes)" style="margin-top:8px;">
         <div class="row3" style="margin-top:8px;">
           <input type="text" id="newCatName" placeholder="...o nueva categoría">
           <div></div>
@@ -1252,6 +1259,7 @@ function renderMenu(){
 
 function renderItem(item){
   const thumb = item.image ? `<img class="item-thumb" src="${item.image}" alt="${item.name}">` : '';
+  const descHtml = item.desc ? `<div class="item-desc">${item.desc}</div>` : '';
 
   if(item.variants && item.variants.length && item.guisos && item.guisos.length){
     const st = ensureGuisoState(item.id);
@@ -1282,6 +1290,7 @@ function renderItem(item){
           ${thumb}
           <div class="item-info">
             <h3>${item.name}</h3>
+            ${descHtml}
           </div>
         </div>
         ${groups}
@@ -1311,6 +1320,7 @@ function renderItem(item){
         ${thumb}
         <div class="item-info">
           <h3>${item.name}</h3>
+          ${descHtml}
         </div>
       </div>
       <p class="hint" style="margin:8px 0 0;">Primero pon cuántas gorditas/sopes/etc quieres en total:</p>
@@ -1339,6 +1349,7 @@ function renderItem(item){
         ${thumb}
         <div class="item-info">
           <h3>${item.name}</h3>
+          ${descHtml}
         </div>
       </div>
       <div class="variant-list">${rows}</div>
@@ -1352,6 +1363,7 @@ function renderItem(item){
         ${thumb}
         <div class="item-info">
           <h3>${item.name}</h3>
+          ${descHtml}
           <div class="price">$${item.price}</div>
         </div>
       </div>
@@ -1811,6 +1823,7 @@ function resetVariantForm(){
 let editingItemId = null;
 function addItem(){
   const name = document.getElementById('newItemName').value.trim();
+  const desc = document.getElementById('newItemDesc').value.trim();
   const newCat = document.getElementById('newCatName').value.trim();
   const cat = newCat || document.getElementById('newItemCat').value;
   const multiPrice = document.getElementById('multiPriceToggle').checked;
@@ -1847,12 +1860,15 @@ function addItem(){
     dataFields = {cat, name, price};
   }
 
+  if(desc) dataFields.desc = desc;
+
   if(editingItemId){
     const existing = menu.find(m=>m.id===editingItemId);
     if(existing){
       delete existing.price;
       delete existing.variants;
       delete existing.guisos;
+      delete existing.desc;
       Object.assign(existing, dataFields);
       if(pendingNewItemImage) existing.image = pendingNewItemImage;
     }
@@ -1871,6 +1887,7 @@ function addItem(){
   saveMenuToCloud();
   document.getElementById('newItemName').value = '';
   document.getElementById('newItemPrice').value = '';
+  document.getElementById('newItemDesc').value = '';
   document.getElementById('newCatName').value = '';
   resetVariantForm();
   removeNewItemPhoto();
@@ -1887,6 +1904,7 @@ function editItem(id){
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
 
   document.getElementById('newItemName').value = item.name;
+  document.getElementById('newItemDesc').value = item.desc || '';
   document.getElementById('newCatName').value = '';
   const catSelect = document.getElementById('newItemCat');
   if(catSelect) catSelect.value = item.cat;
@@ -1928,6 +1946,7 @@ function cancelEditItem(){
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('newItemName').value = '';
   document.getElementById('newItemPrice').value = '';
+  document.getElementById('newItemDesc').value = '';
   document.getElementById('newCatName').value = '';
   resetVariantForm();
   removeNewItemPhoto();
