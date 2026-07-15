@@ -305,6 +305,48 @@
     font-style:italic;
     padding:4px 0 4px;
   }
+  .item-card.variant-card{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .variant-list{
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .variant-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding-top:8px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .variant-row:first-child{
+    padding-top:0;
+    border-top:none;
+  }
+  .variant-label{
+    font-size:14px;
+  }
+  .variant-label b{
+    font-family:'Space Mono',monospace;
+    color:var(--chili-dark);
+    margin-left:6px;
+  }
+  .variant-rows-admin{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:8px;
+  }
+  .variant-row-admin{
+    display:grid;
+    grid-template-columns:1.4fr 0.8fr auto;
+    gap:8px;
+    align-items:center;
+  }
 
   .order-card{
     background:var(--paper);
@@ -810,6 +852,15 @@
           <div></div>
           <button class="btn btn-outline" onclick="addItem()">Agregar</button>
         </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:600;">
+          <input type="checkbox" id="multiPriceToggle" onchange="toggleMultiPrice()" style="width:auto;">
+          Este platillo tiene varios precios (ej. Gordita / Sope / Quesadilla)
+        </label>
+        <div id="variantRows" style="display:none;">
+          <p class="hint" style="margin-top:4px;">Cuando actives esto, el campo "Precio" de arriba se ignora — usa las filas de abajo. El nombre de arriba es el del platillo (ej. "Cachete"); cada fila es una presentación con su propio precio.</p>
+          <div class="variant-rows-admin" id="variantRowsList"></div>
+          <button type="button" class="btn btn-outline" style="margin-top:8px;" onclick="addVariantRow()">+ Agregar otra presentación</button>
+        </div>
         <div class="new-item-photo-row">
           <img id="newItemPhotoPreview" alt="Vista previa">
           <button type="button" class="photo-btn" onclick="openImagePicker(null)">📷 Foto (opcional)</button>
@@ -1126,8 +1177,35 @@ function renderMenu(){
 }
 
 function renderItem(item){
-  const qty = order[item.id] || 0;
   const thumb = item.image ? `<img class="item-thumb" src="${item.image}" alt="${item.name}">` : '';
+
+  if(item.variants && item.variants.length){
+    const rows = item.variants.map((v, idx) => {
+      const vid = `${item.id}::${idx}`;
+      const qty = order[vid] || 0;
+      return `
+        <div class="variant-row">
+          <span class="variant-label">${v.label}<b>$${v.price}</b></span>
+          <div class="stepper">
+            <button onclick="changeQty('${vid}',-1)">−</button>
+            <span class="qty">${qty}</span>
+            <button class="plus" onclick="changeQty('${vid}',1)">+</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+    <div class="item-card variant-card">
+      <div class="item-left">
+        ${thumb}
+        <div class="item-info">
+          <h3>${item.name}</h3>
+        </div>
+      </div>
+      <div class="variant-list">${rows}</div>
+    </div>`;
+  }
+
+  const qty = order[item.id] || 0;
   return `
     <div class="item-card">
       <div class="item-left">
@@ -1143,6 +1221,22 @@ function renderItem(item){
         <button class="plus" onclick="changeQty('${item.id}',1)">+</button>
       </div>
     </div>`;
+}
+
+// Devuelve {name, price} para una línea de pedido, ya sea un platillo simple
+// (id = item.id) o una presentación de un platillo con variantes (id = "itemId::idx")
+function resolveOrderLine(id){
+  if(id.includes('::')){
+    const [itemId, idxStr] = id.split('::');
+    const item = menu.find(m=>m.id===itemId);
+    if(!item || !item.variants) return null;
+    const variant = item.variants[parseInt(idxStr,10)];
+    if(!variant) return null;
+    return {name: `${item.name} (${variant.label})`, price: variant.price};
+  }
+  const item = menu.find(m=>m.id===id);
+  if(!item) return null;
+  return {name: item.name, price: item.price};
 }
 
 function changeQty(id, delta){
@@ -1165,12 +1259,12 @@ function setTipo(tipo){
 function renderOrder(){
   const ids = Object.keys(order);
   const lines = ids.map(id => {
-    const item = menu.find(m=>m.id===id);
-    if(!item) return '';
+    const line = resolveOrderLine(id);
+    if(!line) return '';
     const qty = order[id];
-    const subtotal = qty * item.price;
+    const subtotal = qty * line.price;
     return `<div class="ticket-line">
-      <span>${qty}x ${item.name}</span>
+      <span>${qty}x ${line.name}</span>
       <span>$${subtotal} <span class="rm" onclick="removeLine('${id}')">✕</span></span>
     </div>`;
   }).join('');
@@ -1178,8 +1272,8 @@ function renderOrder(){
   document.getElementById('ticketLines').innerHTML = lines || '<div class="empty-ticket">Aún no has agregado platillos. Ve a la pestaña Menú.</div>';
 
   const total = ids.reduce((sum,id)=>{
-    const item = menu.find(m=>m.id===id);
-    return sum + (item ? item.price*order[id] : 0);
+    const line = resolveOrderLine(id);
+    return sum + (line ? line.price*order[id] : 0);
   },0);
   const count = ids.reduce((s,id)=>s+order[id],0);
 
@@ -1218,10 +1312,10 @@ function currentOrderData(){
   const notes = document.getElementById('notesInput').value.trim();
   let total = 0;
   const items = ids.map(id=>{
-    const item = menu.find(m=>m.id===id);
+    const line = resolveOrderLine(id);
     const qty = order[id];
-    total += qty*item.price;
-    return {name:item.name, qty, price:item.price};
+    total += qty*line.price;
+    return {name:line.name, qty, price:line.price};
   });
   return {tipo:tipoPedido, ref: ref || (tipoPedido==='mesa' ? 'Sin especificar' : 'Sin nombre'), notes, items, total};
 }
@@ -1412,11 +1506,14 @@ function renderItemsList(){
     const removePhoto = item.image
       ? `<span class="del" style="font-size:11px;font-weight:600;" onclick="removeItemImage('${item.id}')" title="Quitar foto">Quitar foto</span>`
       : '';
+    const priceDisplay = item.variants
+      ? item.variants.map(v=>`${v.label}: $${v.price}`).join(' · ')
+      : `$${item.price}`;
     return `
     <div class="menu-item-row">
       ${thumb}
       <span style="flex:1;">${item.name}</span>
-      <span style="width:60px;">$${item.price}</span>
+      <span style="width:auto;max-width:220px;font-size:12.5px;">${priceDisplay}</span>
       <span style="width:90px;color:var(--muted);">${item.cat}</span>
       ${removePhoto}
       <span class="del" onclick="deleteItem('${item.id}')">✕</span>
@@ -1434,23 +1531,77 @@ function removeItemImage(id){
     showToast('Foto quitada, sincronizando…');
   }
 }
+let variantRowCount = 0;
+function toggleMultiPrice(){
+  const on = document.getElementById('multiPriceToggle').checked;
+  document.getElementById('variantRows').style.display = on ? 'block' : 'none';
+  document.getElementById('newItemPrice').disabled = on;
+  document.getElementById('newItemPrice').placeholder = on ? 'No aplica (usa filas de abajo)' : 'Precio';
+  if(on && document.getElementById('variantRowsList').children.length === 0){
+    addVariantRow();
+    addVariantRow();
+  }
+}
+function addVariantRow(){
+  variantRowCount++;
+  const rowId = 'vr' + variantRowCount;
+  const wrap = document.createElement('div');
+  wrap.className = 'variant-row-admin';
+  wrap.id = rowId;
+  wrap.innerHTML = `
+    <input type="text" placeholder="Presentación (ej. Gordita)" class="vr-label">
+    <input type="number" placeholder="Precio" class="vr-price">
+    <span class="del" onclick="document.getElementById('${rowId}').remove()">✕</span>`;
+  document.getElementById('variantRowsList').appendChild(wrap);
+}
+function resetVariantForm(){
+  document.getElementById('multiPriceToggle').checked = false;
+  document.getElementById('variantRows').style.display = 'none';
+  document.getElementById('newItemPrice').disabled = false;
+  document.getElementById('newItemPrice').placeholder = 'Precio';
+  document.getElementById('variantRowsList').innerHTML = '';
+}
 function addItem(){
   const name = document.getElementById('newItemName').value.trim();
-  const price = parseFloat(document.getElementById('newItemPrice').value);
   const newCat = document.getElementById('newCatName').value.trim();
   const cat = newCat || document.getElementById('newItemCat').value;
-  if(!name || isNaN(price) || !cat){
-    showToast('Completa nombre, precio y categoría');
+  const multiPrice = document.getElementById('multiPriceToggle').checked;
+
+  if(!name || !cat){
+    showToast('Completa nombre y categoría');
     return;
   }
+
   const id = 'i' + Date.now();
-  const newItem = {id, cat, name, price};
+  let newItem;
+
+  if(multiPrice){
+    const rows = Array.from(document.querySelectorAll('#variantRowsList .variant-row-admin'));
+    const variants = rows.map(r => ({
+      label: r.querySelector('.vr-label').value.trim(),
+      price: parseFloat(r.querySelector('.vr-price').value)
+    })).filter(v => v.label && !isNaN(v.price));
+    if(variants.length < 1){
+      showToast('Agrega al menos una presentación con nombre y precio');
+      return;
+    }
+    newItem = {id, cat, name, variants};
+  } else {
+    const price = parseFloat(document.getElementById('newItemPrice').value);
+    if(isNaN(price)){
+      showToast('Completa nombre, precio y categoría');
+      return;
+    }
+    newItem = {id, cat, name, price};
+  }
+
   if(pendingNewItemImage) newItem.image = pendingNewItemImage;
   menu.push(newItem);
   saveMenuToCloud();
   document.getElementById('newItemName').value = '';
   document.getElementById('newItemPrice').value = '';
   document.getElementById('newCatName').value = '';
+  resetVariantForm();
   removeNewItemPhoto();
   populateAdmin();
   renderCats();
