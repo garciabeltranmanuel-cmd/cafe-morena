@@ -572,6 +572,25 @@
   }
   .hist-top .ref{font-weight:700;font-size:14.5px;}
   .hist-top .total{font-family:'Space Mono',monospace;font-weight:700;color:var(--chili-dark);}
+  .hist-top-right{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .print-btn{
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    width:30px;
+    height:30px;
+    font-size:14px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
   .hist-meta{
     font-size:12px;
     color:var(--muted);
@@ -801,13 +820,12 @@
 <body>
 
 <header class="top" id="headerTop">
-  <p class="eyebrow">Cafe morena</p>
+  <p class="eyebrow">Café Morena</p>
   <div class="brand-row">
     <span id="logoEmoji" class="logo-emoji">☕</span>
     <img id="logoImg" class="logo-img" alt="Logo">
     <h1> Café Morena </h1>
   </div>
-   <p class="eyebrow">Por que el cafe huele a amor</p>
   <p class="tag">Arma el pedido y mándalo directo a WhatsApp</p>
    <p class="tag"> Hecho: Delly Technologies </p>
   <button class="gear-btn" onclick="openAdmin()" title="Configuración" aria-label="Configuración">⚙</button>
@@ -1659,7 +1677,10 @@ function renderHistory(){
       <div class="hist-card" onclick="this.classList.toggle('open')">
         <div class="hist-top">
           <span class="ref">${tipoIcon} ${h.ref}</span>
-          <span class="total">$${h.total}</span>
+          <div class="hist-top-right">
+            <span class="total">$${h.total}</span>
+            <button class="print-btn" onclick="event.stopPropagation(); printTicket('${h.id}')" title="Imprimir ticket">🖨️</button>
+          </div>
         </div>
         <div class="hist-meta">${dateStr}, ${timeStr}</div>
         <div class="hist-details">
@@ -1678,6 +1699,86 @@ function clearHistory(){
       showToast('Historial borrado');
     });
   }
+}
+
+function printTicket(historyId){
+  const h = history.find(x => x.id === historyId);
+  if(!h) return;
+
+  const businessName = (document.querySelector('.brand-row h1')||{}).textContent
+    ? document.querySelector('.brand-row h1').textContent.trim()
+    : 'Café Morena';
+  const date = new Date(h.ts);
+  const dateStr = date.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const timeStr = date.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  const tipoLabel = h.tipo === 'mesa' ? 'Mesa / Comer aquí' : 'Para llevar';
+
+  const rows = h.items.map(i => `
+    <tr>
+      <td>${i.qty}x ${i.name}</td>
+      <td class="r">$${i.qty * i.price}</td>
+    </tr>`).join('');
+
+  const notesHtml = h.notes
+    ? `<hr><div class="meta">Notas: ${h.notes}</div>`
+    : '';
+
+  const html = `<!doctype html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Ticket ${h.ref}</title>
+    <style>
+      @page{ margin:6mm; }
+      *{box-sizing:border-box;}
+      body{
+        font-family:'Courier New', monospace;
+        width:280px;
+        margin:0 auto;
+        padding:6px;
+        color:#000;
+      }
+      h1{font-size:16px;text-align:center;margin:0 0 2px;letter-spacing:1px;}
+      .sub{text-align:center;font-size:10.5px;margin:0 0 8px;}
+      hr{border:none;border-top:1px dashed #000;margin:8px 0;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      td{padding:3px 0;vertical-align:top;}
+      td.r{text-align:right;white-space:nowrap;padding-left:8px;}
+      .meta{font-size:11.5px;margin-bottom:4px;line-height:1.5;}
+      .total-row td{font-weight:bold;font-size:14px;border-top:1px dashed #000;padding-top:8px;}
+      .foot{text-align:center;font-size:11px;margin-top:14px;}
+    </style>
+  </head>
+  <body>
+    <h1>${businessName.toUpperCase()}</h1>
+    <div class="sub">Ticket de pedido</div>
+    <hr>
+    <div class="meta">
+      ${tipoLabel}: <b>${h.ref}</b><br>
+      ${dateStr} — ${timeStr}
+    </div>
+    <hr>
+    <table>
+      ${rows}
+      <tr class="total-row"><td>TOTAL</td><td class="r">$${h.total}</td></tr>
+    </table>
+    ${notesHtml}
+    <div class="foot">¡Gracias por tu compra!</div>
+  </body>
+  </html>`;
+
+  const win = window.open('', '_blank', 'width=380,height=640');
+  if(!win){
+    showToast('Permite las ventanas emergentes para poder imprimir');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.onload = function(){
+    win.focus();
+    win.print();
+  };
 }
 
 function openAdmin(){
