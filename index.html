@@ -1038,7 +1038,12 @@ const appearanceDocRef = db.collection('cafeteria').doc('appearance');
 const numbersDocRef = db.collection('cafeteria').doc('numbers');
 const statusDocRef = db.collection('cafeteria').doc('status');
 const pinDocRef = db.collection('cafeteria').doc('security');
-const historyColRef = db.collection('cafeteria').doc('meta').collection('historial');
+const metaDocRef = db.collection('cafeteria').doc('meta');
+const historyColRef = metaDocRef.collection('historial');
+// Cada platillo se guarda como su propio documento aquí, para no toparse
+// con el límite de 1MB por documento que tenía el menú completo junto.
+const menuItemsColRef = metaDocRef.collection('menu_items');
+
 </script>
 <script>
 const DEFAULT_MENU = [
@@ -1073,28 +1078,63 @@ let activeCat = null;
 let tipoPedido = 'mesa';
 
 function initMenuSync(){
-  menuDocRef.onSnapshot(function(doc){
-    if(doc.exists && doc.data().items){
-      menu = doc.data().items;
-    } else {
-      menu = DEFAULT_MENU;
-      menuDocRef.set({items: DEFAULT_MENU});
-    }
-    renderCats();
-    renderMenu();
-    renderOrder();
-    if(document.getElementById('adminPanel').style.display === 'block'){
-      const catSelect = document.getElementById('newItemCat');
-      catSelect.innerHTML = categories().map(c=>`<option value="${c}">${c}</option>`).join('');
-      renderItemsList();
-    }
-  }, function(err){
-    showToast('No se pudo conectar al menú compartido');
+  migrateMenuIfNeeded().then(function(){
+    menuItemsColRef.onSnapshot(function(snapshot){
+      const items = [];
+      snapshot.forEach(function(doc){ items.push(doc.data()); });
+      items.sort(function(a,b){ return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); });
+      menu = items;
+      renderCats();
+      renderMenu();
+      renderOrder();
+      if(document.getElementById('adminPanel').style.display === 'block'){
+        const catSelect = document.getElementById('newItemCat');
+        catSelect.innerHTML = categories().map(c=>`<option value="${c}">${c}</option>`).join('');
+        renderItemsList();
+      }
+    }, function(err){
+      showToast('No se pudo conectar al menú compartido');
+    });
   });
 }
 
-function saveMenuToCloud(){
-  menuDocRef.set({items: menu});
+// Migra, una sola vez, el menú viejo (guardado como un solo documento con
+// todos los platillos) hacia un documento independiente por platillo.
+function migrateMenuIfNeeded(){
+  return metaDocRef.get().then(function(metaDoc){
+    if(metaDoc.exists && metaDoc.data().menuMigrated){
+      return Promise.resolve();
+    }
+    return menuDocRef.get().then(function(legacyDoc){
+      const legacyItems = (legacyDoc.exists && legacyDoc.data().items) ? legacyDoc.data().items : [];
+      if(legacyItems.length === 0){
+        return metaDocRef.set({menuMigrated:true}, {merge:true});
+      }
+      const batch = db.batch();
+      legacyItems.forEach(function(item){
+        batch.set(menuItemsColRef.doc(item.id), item);
+      });
+      batch.set(metaDocRef, {menuMigrated:true}, {merge:true});
+      return batch.commit();
+    });
+  }).catch(function(err){
+    showToast('No se pudo preparar el menú, recarga la página para reintentar');
+    return Promise.resolve();
+  });
+}
+
+// Guarda (crea o actualiza) UN SOLO platillo en su propio documento.
+function saveMenuItemToCloud(item){
+  menuItemsColRef.doc(item.id).set(item).catch(function(err){
+    showToast('⚠️ No se pudo guardar el platillo, intenta de nuevo');
+  });
+}
+
+// Borra un platillo de la nube.
+function deleteMenuItemFromCloud(id){
+  menuItemsColRef.doc(id).delete().catch(function(err){
+    showToast('⚠️ No se pudo borrar el platillo, intenta de nuevo');
+  });
 }
 
 function initAppearanceSync(){
@@ -1863,7 +1903,7 @@ function removeItemImage(id){
   const item = menu.find(m=>m.id===id);
   if(item){
     delete item.image;
-    saveMenuToCloud();
+    saveMenuItemToCloud(item);
     renderItemsList();
     renderMenu();
     showToast('Foto quitada, sincronizando…');
@@ -1964,6 +2004,7 @@ function addItem(){
 
   if(desc) dataFields.desc = desc;
 
+  let savedItem;
   if(editingItemId){
     const existing = menu.find(m=>m.id===editingItemId);
     if(existing){
@@ -1973,6 +2014,7 @@ function addItem(){
       delete existing.desc;
       Object.assign(existing, dataFields);
       if(pendingNewItemImage) existing.image = pendingNewItemImage;
+      savedItem = existing;
     }
     editingItemId = null;
     document.getElementById('formModeLabel').textContent = 'Nuevo platillo';
@@ -1983,10 +2025,11 @@ function addItem(){
     const newItem = {id: 'i' + Date.now(), ...dataFields};
     if(pendingNewItemImage) newItem.image = pendingNewItemImage;
     menu.push(newItem);
+    savedItem = newItem;
     showToast('Platillo agregado, sincronizando…');
   }
 
-  saveMenuToCloud();
+  if(savedItem) saveMenuItemToCloud(savedItem);
   document.getElementById('newItemName').value = '';
   document.getElementById('newItemPrice').value = '';
   document.getElementById('newItemDesc').value = '';
@@ -2056,7 +2099,7 @@ function cancelEditItem(){
 function deleteItem(id){
   if(editingItemId === id) cancelEditItem();
   menu = menu.filter(i=>i.id!==id);
-  saveMenuToCloud();
+  deleteMenuItemFromCloud(id);
   renderItemsList();
   renderCats();
   renderMenu();
@@ -2108,7 +2151,7 @@ function handleItemImage(evt){
         const item = menu.find(m=>m.id===imageTargetId);
         if(item){
           item.image = dataUrl;
-          saveMenuToCloud();
+          saveMenuItemToCloud(item);
           renderItemsList();
           renderMenu();
           showToast('Foto actualizada, sincronizando…');
