@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Café Morena — Comandas</title>
+<title>Morena Café — Comandas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -820,11 +820,11 @@
 <body>
 
 <header class="top" id="headerTop">
-  <p class="eyebrow">Café Morena</p>
+  <p class="eyebrow">Morena Café</p>
   <div class="brand-row">
     <span id="logoEmoji" class="logo-emoji">☕</span>
     <img id="logoImg" class="logo-img" alt="Logo">
-    <h1> Café Morena </h1>
+    <h1> Morena Café </h1>
   </div>
   <p class="tag">Arma el pedido y mándalo directo a WhatsApp</p>
    <p class="tag"> Hecho: Delly Technologies </p>
@@ -834,7 +834,7 @@
 <div class="view active" id="viewWelcome">
   <div class="welcome-view">
     <div class="welcome-card">
-      <p class="w-eyebrow">Café Morena</p>
+      <p class="w-eyebrow">Morena Café</p>
       <h2>☕ Bienvenido</h2>
       <p class="w-sub">Escanea el código para abrir la comanda en tu celular</p>
       <div id="qrContainer"></div>
@@ -1010,7 +1010,7 @@
 
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
-    <p class="w-eyebrow">Café Morena</p>
+    <p class="w-eyebrow">Morena Café</p>
     <h2>🔒 Cerrado por ahora</h2>
     <p class="w-sub">No se están recibiendo pedidos en este momento. Vuelve a intentarlo más tarde. Favor de hacer el Pago correspondiente!</p>
     <button class="enter-btn" onclick="openAdmin()">Soy administrador Delly Technologies </button>
@@ -1747,7 +1747,7 @@ function printTicket(historyId){
 
   const businessName = (document.querySelector('.brand-row h1')||{}).textContent
     ? document.querySelector('.brand-row h1').textContent.trim()
-    : 'Café Morena';
+    : 'Morena Café';
   const date = new Date(h.ts);
   const dateStr = date.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
   const timeStr = date.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
