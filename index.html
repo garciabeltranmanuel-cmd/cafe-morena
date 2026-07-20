@@ -865,7 +865,7 @@
       <div id="ticketLines"></div>
       <textarea id="notesInput" placeholder="Notas (ej. sin cebolla, extra salsa...)"></textarea>
 
-      <button class="finalize-btn" id="finalizeBtn" onclick="finalizeOrder()">✅ Finalizar y guardar en historial</button>
+      <button class="finalize-btn" id="finalizeBtn" onclick="finalizeOrder()">✅ Finalizar pedido</button>
       <p class="hint" id="confirmHint" style="text-align:center;margin:8px 0 0;">Finaliza el pedido para poder enviarlo por WhatsApp.</p>
       <button class="send-all-btn" id="sendBtn" onclick="sendOrder()" disabled>📤 Enviar pedido</button>
       <button class="clear-btn" onclick="clearOrder()">Vaciar pedido</button>
@@ -1646,6 +1646,15 @@ function sendOrder(){
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   });
+  // El pedido solo se guarda en el historial hasta que de verdad se envía.
+  historyColRef.add({
+    ts: Date.now(),
+    tipo: data.tipo,
+    ref: data.ref,
+    items: data.items,
+    total: data.total,
+    notes: data.notes
+  });
   showToast(activeNumbers.length > 1 ? 'Abriendo WhatsApp para cada destino…' : 'Abriendo WhatsApp…');
   clearOrder();
 }
@@ -1658,9 +1667,9 @@ function updateConfirmUI(){
     finalizeBtn.textContent = '✅ Pedido confirmado';
     finalizeBtn.classList.add('confirmed');
     sendBtn.disabled = false;
-    hint.textContent = 'Listo, ya puedes enviarlo por WhatsApp.';
+    hint.textContent = 'Listo, ya puedes enviarlo por WhatsApp. Se guardará en el historial al enviarlo.';
   } else {
-    finalizeBtn.textContent = '✅ Finalizar y guardar en historial';
+    finalizeBtn.textContent = '✅ Finalizar pedido';
     finalizeBtn.classList.remove('confirmed');
     sendBtn.disabled = true;
     hint.textContent = 'Finaliza el pedido para poder enviarlo por WhatsApp.';
@@ -1674,17 +1683,9 @@ function finalizeOrder(){
     showToast('Agrega al menos un platillo antes de finalizar');
     return;
   }
-  historyColRef.add({
-    ts: Date.now(),
-    tipo: data.tipo,
-    ref: data.ref,
-    items: data.items,
-    total: data.total,
-    notes: data.notes
-  });
   orderConfirmed = true;
   updateConfirmUI();
-  showToast('Pedido guardado en historial. Ya puedes enviarlo.');
+  showToast('Pedido confirmado. Tócalo en "Enviar pedido" para mandarlo y guardarlo.');
 }
 
 function initHistorySync(){
